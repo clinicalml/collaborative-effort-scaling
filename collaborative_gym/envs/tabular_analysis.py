@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from knowledge_storm import OpenAIModel
+from knowledge_storm import AzureOpenAIModel
 
 from collaborative_gym.core import CoEnv, ObservationTypes, logger
 from collaborative_gym.envs.registry import EnvFactory
@@ -188,9 +188,11 @@ class CoAnalysisEnv(CoEnv):
             try:
                 # The evaluator could be changed to a different model.
                 # Use OpenAI GPT to match the Collaborative Gym paper.
-                self.evaluator_lm = OpenAIModel(
-                    model="gpt-4o-2024-08-06",
-                    api_key=os.environ["OPENAI_API_KEY"],
+                self.evaluator_lm = AzureOpenAIModel(
+                    model="gpt-4o",
+                    api_key=os.environ["AZURE_API_KEY"],
+                    azure_endpoint=os.environ["AZURE_ENDPOINT"],
+                    api_version=os.environ["AZURE_API_VERSION"],
                 )
             except KeyError:
                 self.evaluator_lm = None

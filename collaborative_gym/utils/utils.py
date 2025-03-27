@@ -1,7 +1,34 @@
 import logging
 import os
 import sys
+
 import toml
+
+
+def serialize_llm_response(obj):
+    """
+    Convert OpenAI API response objects to serializable dictionaries.
+    Works recursively to handle nested objects.
+    """
+    if hasattr(obj, "__dict__"):
+        # For custom classes, convert to dict
+        return {
+            k: serialize_llm_response(v)
+            for k, v in obj.__dict__.items()
+            if not k.startswith("_")
+        }
+    elif isinstance(obj, dict):
+        # Recursively serialize dictionary values
+        return {k: serialize_llm_response(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        # Recursively serialize list items
+        return [serialize_llm_response(item) for item in obj]
+    elif isinstance(obj, (str, int, float, bool, type(None))):
+        # Basic types can be returned as is
+        return obj
+    else:
+        # For any other objects, convert to string representation
+        return str(obj)
 
 
 def load_api_key(toml_file_path):

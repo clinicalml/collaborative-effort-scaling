@@ -14,12 +14,12 @@ from aact.cli.reader.dataflow_reader import NodeArgs
 from knowledge_storm.lm import LitellmModel
 
 from collaborative_gym.core import (
+    RequestTeammateConfirm,
     SendTeammateMessage,
     WaitTeammateContinue,
-    RequestTeammateConfirm,
 )
 from collaborative_gym.utils.context_processing import ContextProcessor
-from collaborative_gym.utils.utils import prepare_lm_kwargs
+from collaborative_gym.utils.utils import prepare_lm_kwargs, serialize_llm_response
 from demo_agent.utils.memory import Scratchpad
 
 logging.basicConfig(
@@ -226,7 +226,7 @@ class OneStageCollaborativeAgent:
         ) as f:
             for call in self.lm.history:
                 f.write(
-                    json.dumps({"prompt": call["prompt"], "response": call["response"]})
+                    json.dumps({"prompt": call["prompt"], "response": serialize_llm_response(call["response"])})
                     + "\n"
                 )
         logger.info("Basic Collaborative Agent ended.")
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model-name",
         type=str,
-        default="gpt-4o-2024-08-06",
+        default="gpt-4o",
         help="We use LiteLLM to dispatch the request to the correct model."
         "Please ensure the model name matches the naming convention in LiteLLM."
         "https://docs.litellm.ai/docs/providers",

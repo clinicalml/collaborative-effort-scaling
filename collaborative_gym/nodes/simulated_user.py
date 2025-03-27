@@ -3,16 +3,17 @@ import json
 import os
 import random
 import re
-from typing import Union, Dict, AsyncIterator
+from typing import AsyncIterator, Dict, Union
 
 import dspy
-from aact import NodeFactory, Message
-from knowledge_storm import OpenAIModel
+from aact import Message, NodeFactory
+from knowledge_storm import AzureOpenAIModel
 
 from collaborative_gym import JsonObj
 from collaborative_gym.core import SendTeammateMessage, WaitTeammateContinue, logger
 from collaborative_gym.nodes.base_node import BaseNode
 from collaborative_gym.utils.context_processing import ContextProcessor
+from collaborative_gym.utils.utils import serialize_llm_response
 
 
 class UserPersona:
@@ -442,11 +443,11 @@ class SimulatedUserProxy:
         ) as f:
             for call in self.planning_lm.history:
                 f.write(
-                    json.dumps({"prompt": call["prompt"], "response": call["response"]})
+                    json.dumps({"prompt": call["prompt"], "response": serialize_llm_response(call["response"])})
                     + "\n"
                 )
             for call in self.executing_lm.history:
-                f.write(json.dumps(call) + "\n")
+                f.write(json.dumps(serialize_llm_response(call)) + "\n")
         with open(
             os.path.join(result_dir, "simulated_user", "action_history.json"), "w"
         ) as f:
@@ -507,14 +508,18 @@ class SimulatedUserNode(BaseNode[JsonObj, JsonObj]):
         self.env_uuid = env_uuid
         self.node_name = node_name
         self.simulated_user = SimulatedUserProxy(
-            planning_lm=OpenAIModel(
-                model="gpt-4o-2024-08-06",
-                api_key=os.environ["OPENAI_API_KEY"],
+            planning_lm=AzureOpenAIModel(
+                model="gpt-4o",
+                api_key=os.environ["AZURE_API_KEY"],
+                azure_endpoint=os.environ["AZURE_ENDPOINT"],
+                api_version=os.environ["AZURE_API_VERSION"],
                 max_tokens=100,
             ),
-            executing_lm=OpenAIModel(
-                model="gpt-4o-2024-08-06",
-                api_key=os.environ["OPENAI_API_KEY"],
+            executing_lm=AzureOpenAIModel(
+                model="gpt-4o",
+                api_key=os.environ["AZURE_API_KEY"],
+                azure_endpoint=os.environ["AZURE_ENDPOINT"],
+                api_version=os.environ["AZURE_API_VERSION"],
                 max_tokens=4000,
             ),
             randomize_persona=randomize_persona,

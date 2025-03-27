@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from knowledge_storm import GoogleSearch, OpenAIModel
+from knowledge_storm import GoogleSearch, AzureOpenAIModel
 
 from collaborative_gym.core import CoEnv, ObservationTypes, logger
 from collaborative_gym.envs.registry import EnvFactory
@@ -120,9 +120,11 @@ class CoTravelPlanningEnv(CoEnv):
                 ),
             }
             try:
-                self.parsing_lm = OpenAIModel(
-                    model="gpt-4o-2024-08-06",
-                    api_key=os.environ["OPENAI_API_KEY"],
+                self.parsing_lm = AzureOpenAIModel(
+                    model="gpt-4o",
+                    api_key=os.environ["AZURE_API_KEY"],
+                    azure_endpoint=os.environ["AZURE_ENDPOINT"],
+                    api_version=os.environ["AZURE_API_VERSION"],
                 )
             except KeyError:
                 self.parsing_lm = None
