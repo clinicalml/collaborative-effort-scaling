@@ -1,0 +1,9 @@
+[[team_member]]
+name = "basic_collaborative_agent"
+type = "agent"
+start_node_base_command = "python -m demo_agent.basic_collaborative_agent.agent --add-task-demo --model-name hosted_vllm/Qwen2.5-72B-Instruct --wait-time 1"
+
+[[team_member]]
+name = "user"
+type = "simulated_user"
+start_node_base_command = "python -m collaborative_gym.command start-simulated-user-node --proactive-feedback"
