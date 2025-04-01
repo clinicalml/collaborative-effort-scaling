@@ -6,7 +6,7 @@ from typing import Union, List, Dict
 
 import dspy
 import numpy as np
-from knowledge_storm import TogetherClient
+from knowledge_storm import TogetherClient, AzureOpenAIModel
 from tqdm import tqdm
 
 from collaborative_gym.core import SendTeammateMessage
@@ -120,14 +120,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     load_api_key("secrets.toml")
-    llama = TogetherClient(
-        model="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-        api_key=os.environ["TOGETHER_API_KEY"],
+    lm = AzureOpenAIModel(
+        model="gpt-4o",
+        api_key=os.environ["AZURE_API_KEY"],
+        azure_endpoint=os.environ["AZURE_ENDPOINT"],
+        api_version=os.environ["AZURE_API_VERSION"],
         max_tokens=50,
         temperature=0,
     )
 
-    evaluator = TeamInitiativeEvaluator(lm=llama)
+    evaluator = TeamInitiativeEvaluator(lm=lm)
 
     results = {}
     for d in tqdm(os.listdir(args.result_dir)):
@@ -205,4 +207,4 @@ if __name__ == "__main__":
     )
 
     print("Token Usage:")
-    print(llama.get_usage_and_reset())
+    print(lm.get_usage_and_reset())
