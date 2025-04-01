@@ -58,7 +58,7 @@ def prepare_lm_kwargs(model_name):
         api_key = os.environ["TOGETHER_API_KEY"]
     elif "deepseek" in model_name:
         api_key = os.environ["DEEPSEEK_API_KEY"]
-    elif "gemini" in model_name:
+    elif "gemini" in model_name and "vertex" not in model_name:
         api_key = os.environ["GEMINI_API_KEY"]
     else:
         logging.warning(
