@@ -8,11 +8,12 @@ import os
 import signal
 import sys
 import time
+
 import toml
 
 from collaborative_gym.core import TeamMemberConfig
 from collaborative_gym.runner import Runner
-from collaborative_gym.utils.string import make_string_green
+from collaborative_gym.utils.string import make_string_green, make_string_blue
 
 TABULAR_ANALYSIS_CONFIG_TEMPLATE = """env_class = "tabular_analysis"
 
@@ -93,6 +94,29 @@ def run_experiments(args, env_config_tmp_dir, config_template):
         runner.reset()
         start_time = time.time()
         print(make_string_green(f"Starting experiment for {args.task} with index {idx}"))
+
+        # Add a check if the previous experiment is already finished and skip if so
+        task_folder = os.path.join(
+            args.work_dir,
+            f"{args.task}/{args.result_dir_tag}/results/env_{args.task}_{idx}",
+        )
+        if os.path.exists(task_folder):
+            if os.path.exists(os.path.join(task_folder, "task_performance.json")):
+                print(
+                    make_string_green(
+                        f"Experiment for {args.task} with index {idx} already completed. Skipping..."
+                    )
+                )
+                continue
+            else:
+                print(
+                    make_string_blue(
+                        f"Experiment for {args.task} with index {idx} is partially finished. Archiving the previous version and starting a new one."
+                    )
+                )
+                os.rename(task_folder, task_folder + "_old")
+
+        
         config_path = os.path.join(env_config_tmp_dir, f"{args.task}_{idx}.toml")
         with open(config_path, "w") as f:
             f.write(config_template.format(idx=idx))
