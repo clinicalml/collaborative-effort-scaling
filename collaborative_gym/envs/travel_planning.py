@@ -121,7 +121,7 @@ class CoTravelPlanningEnv(CoEnv):
             }
             try:
                 self.parsing_lm = AzureOpenAIModel(
-                    model="gpt-4o",
+                    model="gpt-4o-2024-08-06",
                     api_key=os.environ["AZURE_API_KEY"],
                     azure_endpoint=os.environ["AZURE_ENDPOINT"],
                     api_version=os.environ["AZURE_API_VERSION"],
@@ -718,8 +718,13 @@ class CoTravelPlanningEnv(CoEnv):
             return {"output": output}
 
     def evaluate_task_performance(self) -> Dict:
-        performance = {"outcome": self.travel_plan_editor.get_text()}
-        if len(self.travel_plan_editor.get_text()) == 0:
+        return self._evaluate_task_performance(
+            self.travel_plan_editor.get_text()
+        )
+    
+    def _evaluate_task_performance(self, _text) -> Dict:
+        performance = {"outcome": _text}
+        if len(_text) == 0:
             performance["task_completion"] = 0
             performance["performance_rating"] = 0
             return performance
@@ -728,7 +733,7 @@ class CoTravelPlanningEnv(CoEnv):
         if self.use_simulated_dataset:
             performance["idx"] = self.travel_planner_data_point_idx
             performance["parsed_travel_plan"] = self.eval_helper_parse_travel_plan(
-                self.travel_plan_editor.get_text()
+                _text
             )
             try:
                 performance["commonsense_evaluation"] = (

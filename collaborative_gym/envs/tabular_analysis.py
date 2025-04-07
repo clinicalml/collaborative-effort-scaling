@@ -189,7 +189,7 @@ class CoAnalysisEnv(CoEnv):
                 # The evaluator could be changed to a different model.
                 # Use OpenAI GPT to match the Collaborative Gym paper.
                 self.evaluator_lm = AzureOpenAIModel(
-                    model="gpt-4o",
+                    model="gpt-4o-2024-08-06",
                     api_key=os.environ["AZURE_API_KEY"],
                     azure_endpoint=os.environ["AZURE_ENDPOINT"],
                     api_version=os.environ["AZURE_API_VERSION"],
@@ -1023,8 +1023,11 @@ class CoAnalysisEnv(CoEnv):
         return eval_rec
 
     def evaluate_task_performance(self) -> Dict:
-        performance = {"outcome": self.result_editor.get_text(), "query": self.query}
-        if len(self.result_editor.get_text()) == 0:
+        return self._evaluate_task_performance(self.result_editor.get_text())    
+
+    def _evaluate_task_performance(self, _text) -> Dict:
+        performance = {"outcome": _text, "query": self.query}
+        if len(_text) == 0:
             performance["task_completion"] = 0
             performance["performance_rating"] = 0
             return performance
@@ -1034,7 +1037,7 @@ class CoAnalysisEnv(CoEnv):
             detailed_result = self.run_eval_gold_vs_gen_NL_hypo(
                 query=self.query,
                 gold_hypo=self.discovery_bench_gold_hypo,
-                gen_hypo=self.result_editor.get_text(),
+                gen_hypo=_text,
                 dataset_meta=self.discovery_bench_metadata,
                 dataset_type="real",
                 use_column_metadata=True,
