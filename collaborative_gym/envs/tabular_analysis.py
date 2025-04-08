@@ -149,6 +149,7 @@ class CoAnalysisEnv(CoEnv):
         discovery_bench_root_dir: str = "datasets/discoverybench/real/test",
         docker_image_name: str = "cogym-jupyter-cpu-image",
         docker_local_root_dir: str = os.path.join(os.getcwd(), "tmp"),
+        launch_jupyter: bool = True,
     ):
         super().__init__(team_members=team_members, env_id=env_id)
 
@@ -193,6 +194,7 @@ class CoAnalysisEnv(CoEnv):
                     api_key=os.environ["AZURE_API_KEY"],
                     azure_endpoint=os.environ["AZURE_ENDPOINT"],
                     api_version=os.environ["AZURE_API_VERSION"],
+                    max_tokens=4096,
                 )
             except KeyError:
                 self.evaluator_lm = None
@@ -204,16 +206,19 @@ class CoAnalysisEnv(CoEnv):
             self.query = query
 
         # Docker Jupyter sandbox for executing Python code
-        self.docker_volume_local_dir = os.path.join(docker_local_root_dir, self.env_id)
-        os.makedirs(self.docker_volume_local_dir, exist_ok=True)
-        self.jupyter_manager = JupyterManager(
-            custom_image_name=docker_image_name,
-            docker_volume_local_dir=self.docker_volume_local_dir,
-            timeout=60 * 30,  # set a long timeout
-        )
-        self.docker_volume_container_dir = self.jupyter_manager.docker_server.volumes[
-            self.docker_volume_local_dir
-        ]["bind"]
+        if launch_jupyter:
+            self.docker_volume_local_dir = os.path.join(docker_local_root_dir, self.env_id)
+            os.makedirs(self.docker_volume_local_dir, exist_ok=True)
+            self.jupyter_manager = JupyterManager(
+                custom_image_name=docker_image_name,
+                docker_volume_local_dir=self.docker_volume_local_dir,
+                timeout=60 * 30,  # set a long timeout
+            )
+            self.docker_volume_container_dir = self.jupyter_manager.docker_server.volumes[
+                self.docker_volume_local_dir
+            ]["bind"]
+        else:
+            self.docker_volume_container_dir = "home/jovyan/work"
 
         # Task information
         self.dataset_local_paths = []
@@ -621,7 +626,7 @@ class CoAnalysisEnv(CoEnv):
         }
 
         sub_hypo_json = self.eval_helper_get_response_with_retry(
-            _prompt, decode_output_to_json=True, max_retry=max_retry
+            _prompt, decode_output_to_json=True, max_retry=max_retry, temperature=0.0
         )
         if sub_hypo_json is not None:
             # print(f"full hypothesis: {hypo}")
@@ -671,7 +676,7 @@ class CoAnalysisEnv(CoEnv):
                 ```"""
 
         output = self.eval_helper_get_response_with_retry(
-            prompt, decode_output_to_json=True, max_retry=5
+            prompt, decode_output_to_json=True, max_retry=5, temperature=0.0
         )
         if output:
             return output.get("match", False)
@@ -1023,7 +1028,7 @@ class CoAnalysisEnv(CoEnv):
         return eval_rec
 
     def evaluate_task_performance(self) -> Dict:
-        return self._evaluate_task_performance(self.result_editor.get_text())    
+        return self._evaluate_task_performance(self.result_editor.get_text())
 
     def _evaluate_task_performance(self, _text) -> Dict:
         performance = {"outcome": _text, "query": self.query}
