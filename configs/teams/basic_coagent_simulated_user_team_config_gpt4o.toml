@@ -1,7 +1,7 @@
 [[team_member]]
 name = "basic_collaborative_agent"
 type = "agent"
-start_node_base_command = "python -m demo_agent.basic_collaborative_agent.agent --add-task-demo --model-name gpt-4o-2024-08-06 --wait-time 1"
+start_node_base_command = "python -m demo_agent.basic_collaborative_agent.agent --add-task-demo --model-name azure/gpt-4o-2024-08-06 --wait-time 1"
 
 [[team_member]]
 name = "user"
