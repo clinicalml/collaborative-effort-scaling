@@ -1,0 +1,4 @@
+[[team_member]]
+name = "basic_auto_agent"
+type = "agent"
+start_node_base_command = "python -m demo_agent.auto_agent.agent --add-task-demo --model-name vertex_ai/claude-sonnet-4@20250514"
