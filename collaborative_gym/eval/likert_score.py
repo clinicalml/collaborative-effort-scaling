@@ -34,12 +34,35 @@ def count_words(text: str) -> int:
     return len(tokens)
 
 
+class JudgeAgentProgress(dspy.Signature):
+    """Given a previous user message, agent's response/question, and the next user message,
+    judge whether the agent is making progress in addressing the user's needs.
+    Provide a rating on a 5-point Likert scale:
+    1: Strongly Disagree - Agent made no progress or moved backwards
+    2: Disagree - Agent made minimal progress
+    3: Neutral - Agent maintained the same level of progress
+    4: Agree - Agent made good progress
+    5: Strongly Agree - Agent made excellent progress
+    Output the rating (1-5)."""
+
+    previous_user_message = dspy.InputField(
+        prefix="Previous User Message: ", format=str
+    )
+    agent_message = dspy.InputField(prefix="Agent Message: ", format=str)
+    next_user_message = dspy.InputField(prefix="Next User Message: ", format=str)
+    rating = dspy.OutputField(
+        prefix="Indicate your rating with a single number among 1/2/3/4/5, and if you want to provide an explanation, please put it after a new line: ",
+        format=str,
+    )
+
+
 class AnalyzeAgentProgress:
 
     def __init__(self, lm: Union[dspy.dsp.LM, dspy.dsp.HFModel], task_name: str):
         super().__init__()
         self.engine = lm
         self.task_name = task_name
+        self.judge_agent_progress = dspy.ChainOfThought(JudgeAgentProgress)
 
     @staticmethod
     def is_agent_message(event):
@@ -145,37 +168,58 @@ class AnalyzeAgentProgress:
                 # ]),
                 "has_result_updates": has_result_updates,
                 "last_result_update_content": (
-                    editor_update_action.parse(editor_update_rows[-1])
-                    if has_result_updates
-                    else None
+                    editor_update_rows[-1] if has_result_updates else None
                 ),
-                "evaluation": None,
-                "performance_rating": None,
+                "rating": None,
+                "explanation": None,
             }
-
-            if (
-                has_result_updates
-                and interaction_session["last_result_update_content"] is not None
-            ):
-
-                eval_output = eval_env._evaluate_task_performance(
-                    interaction_session["last_result_update_content"],
-                )
-                interaction_session["evaluation"] = eval_output
-                interaction_session["performance_rating"] = eval_output[
-                    "performance_rating"
-                ]
 
             return interaction_session
 
         if len(user_indices) == 0:
             return []
 
+        output = [process_user_interaction(i) for i in range(len(user_indices) + 1)]
+        combined_df = pd.DataFrame(output)
+        combined_df["next_user_action"] = combined_df["user_action"].shift(-1)
+
+        def score_step(idx):
+
+            row_data = combined_df.iloc[idx].to_dict()
+            agent_actions = row_data["agent_actions"]
+            agent_message = "\n".join(
+                [f"{idx+1}. {msg}" for idx, msg in enumerate(agent_actions)]
+            )
+
+            previous_user_action = row_data["user_action"]
+            next_user_action = row_data["next_user_action"]
+
+            if len(agent_actions) == 0:
+                return row_data
+            else:
+                with dspy.settings.context(lm=self.engine, show_guidelines=False):
+                    progress_result = self.judge_agent_progress(
+                        previous_user_message=previous_user_action,
+                        agent_message=agent_message,
+                        next_user_message=next_user_action,
+                    )
+
+                try:
+                    rating = "".join(
+                        re.findall(r"\d", progress_result.rating.split("\n")[0])
+                    )
+                except (ValueError, AttributeError):
+                    rating = None
+
+                row_data["rating"] = rating
+                row_data["explanation"] = progress_result.rating
+                return row_data
+
         results = []
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
-            for i in range(len(user_indices) + 1):
-                futures.append(executor.submit(process_user_interaction, i))
+            for i in range(len(user_indices)):
+                futures.append(executor.submit(score_step, i))
 
             for future in as_completed(futures):
                 result = future.result()
@@ -201,7 +245,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     load_api_key("secrets.toml")
-    lm = None
+    lm = AzureOpenAIModel(
+        model="gpt-4o",
+        api_key=os.environ["AZURE_API_KEY"],
+        azure_endpoint=os.environ["AZURE_ENDPOINT"],
+        api_version=os.environ["AZURE_API_VERSION"],
+        max_tokens=50,  # Increased to accommodate explanation
+        temperature=0,
+    )
 
     evaluator = AnalyzeAgentProgress(lm=lm, task_name=args.task)
 
@@ -218,7 +269,7 @@ if __name__ == "__main__":
     if args.debug:
         all_dirs = all_dirs[:2]
 
-    for d in tqdm(all_dirs[::-1]):
+    for d in tqdm(all_dirs):
         if os.path.isdir(os.path.join(args.result_dir, d)):
 
             if args.skip_existing and os.path.exists(
@@ -245,5 +296,5 @@ if __name__ == "__main__":
             results[d] = prediction
 
     # Save results
-    with open(os.path.join(args.result_dir, "agent_progress_eval.json"), "w") as f:
+    with open(os.path.join(args.result_dir, "likert_score.json"), "w") as f:
         json.dump(results, f, indent=4)
