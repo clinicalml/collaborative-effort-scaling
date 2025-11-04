@@ -6,7 +6,7 @@
 
 ---
 
-This repository contains the code and analysis for **"Designing and Evaluating LLM Agents Through the Lens of Collaborative Effort Scaling"**, a framework that captures how an agent's utility grows with increasing user involvement and reveals critical gaps in current agents' ability to sustain engagement and scaffold user understanding.
+This repository contains the code and analysis for **"Completion ≠ Collaboration: Scaling Collaborative Effort with Agents"**, a framework that captures how an agent's utility grows with increasing user involvement and reveals critical gaps in current agents' ability to sustain engagement and scaffold user understanding.
 
 📝 **[Read the paper](https://arxiv.org/abs/2510.25744)** | 🌐 **[Visit the project page](https://www.szj.io/posts/collaborative-effort-scaling)**
 
@@ -72,7 +72,7 @@ If you use this work, please cite both the collaborative effort scaling paper an
 
 ```bibtex
 @article{shen2025designing,
-  title={Task Completion Agents are Not Ideal Collaborators},
+  title={Completion $\neq$ Collaboration: Scaling Collaborative Effort with Agents},
   author={Shen, Shannon Zejiang and Chen, Valerie and Gu, Ken and Ross, Alexis and Ma, Zixian and Gu, Alex and Si, Chenglei and Ross, Jillian and Shen, Jocelyn J and Chi, Wayne and Peng, Andi and Talwalkar, Ameet and Wu, Tongshuang and Sontag, David},
   journal={arXiv preprint arXiv:2510.25744},
   year={2025}
